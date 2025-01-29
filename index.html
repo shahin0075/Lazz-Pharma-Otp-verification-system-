@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #141e30, #243b55);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            text-align: center;
+        }
+        .btn-custom {
+            background: #00c6ff;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-custom:hover {
+            background: #0072ff;
+        }
+        .loader {
+            display: none;
+            width: 25px;
+            height: 25px;
+            border: 3px solid white;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #timer {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>OTP Verification</h2>
+    <input type="text" id="phone" placeholder="Enter Phone Number">
+    <button id="sendOtpBtn" class="btn-custom" onclick="sendOTP()">Send OTP</button>
+    <div id="loader" class="loader hidden"></div>
+    <p id="response" class="message"></p>
+
+    <div id="otpSection" class="hidden">
+        <input type="text" id="otp" placeholder="Enter OTP">
+        <button class="btn-custom" onclick="verifyOTP()">Verify OTP</button>
+        <p id="timer" class="message hidden"></p>
+    </div>
+</div>
+
+<script>
+    let countdown;
+
+    function sendOTP() {
+        let phone = document.getElementById("phone").value.trim();
+        let sendOtpBtn = document.getElementById("sendOtpBtn");
+        let responseBox = document.getElementById("response");
+        let timer = document.getElementById("timer");
+        let loader = document.getElementById("loader");
+
+        if (phone === "") {
+            responseBox.innerHTML = "⚠ Please enter a phone number!";
+            responseBox.style.color = "orange";
+            return;
+        }
+
+        sendOtpBtn.style.display = "none";
+        loader.style.display = "block";
+
+        let data = {
+            "ActivityId": "a5b01aa5-b2f1-4a74-9d41-ae6028cedf0c",
+            "Phone": phone
+        };
+
+        fetch("https://www.lazzpharma.com/MessagingArea/OtpMessage/WebRegister", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            loader.style.display = "none";
+            sendOtpBtn.style.display = "block";
+
+            if (data && data.status === "success") {
+                responseBox.innerHTML = "✅ OTP Sent Successfully!";
+                responseBox.style.color = "green";
+                document.getElementById("otpSection").classList.remove("hidden");
+
+                let timeLeft = 60;
+                timer.classList.remove("hidden");
+                countdown = setInterval(() => {
+                    if (timeLeft <= 0) {
+                        clearInterval(countdown);
+                        sendOtpBtn.innerText = "Resend OTP";
+                        timer.classList.add("hidden");
+                    } else {
+                        timer.innerText = "Resend OTP in " + timeLeft + "s";
+                        timeLeft--;
+                    }
+                }, 1000);
+            } else {
+                responseBox.innerHTML = "⚠ OTP Sent, But Server Response Not Proper!";
+                responseBox.style.color = "orange";
+                document.getElementById("otpSection").classList.remove("hidden");  
+            }
+        })
+        .catch(error => {
+            loader.style.display = "none";
+            sendOtpBtn.style.display = "block";
+            responseBox.innerHTML = "❌ Error: " + error;
+            responseBox.style.color = "red";
+        });
+    }
+
+    function verifyOTP() {
+        let phone = document.getElementById("phone").value.trim();
+        let otp = document.getElementById("otp").value.trim();
+        let responseBox = document.getElementById("response");
+
+        if (otp === "") {
+            responseBox.innerHTML = "⚠ Please enter OTP!";
+            responseBox.style.color = "orange";
+            return;
+        }
+
+        responseBox.innerHTML = "🔄 Verifying OTP...";
+        responseBox.style.color = "blue";
+
+        let verifyData = {
+            "ActivityId": "a5b01aa5-b2f1-4a74-9d41-ae6028cedf0c",
+            "Phone": phone,
+            "OTP": otp
+        };
+
+        fetch("https://www.lazzpharma.com/MessagingArea/OtpMessage/VerifyOTP", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(verifyData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.status === "success") {
+                responseBox.innerHTML = "✅ OTP Verified! Redirecting...";
+                responseBox.style.color = "green";
+                setTimeout(() => {
+                    window.location.href = "reset-password.html";
+                }, 2000);
+            } else {
+                responseBox.innerHTML = "❌ Invalid OTP. Try again.";
+                responseBox.style.color = "red";
+            }
+        })
+        .catch(error => {
+            responseBox.innerHTML = "❌ Error: " + error;
+            responseBox.style.color = "red";
+        });
+    }
+</script>
+
+</body>
+</html>
